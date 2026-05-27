@@ -1,8 +1,0 @@
-services:
-  - type: web
-    name: simple-chat
-    env: node
-    region: singapore
-    buildCommand: npm install
-    startCommand: npm start
-    plan: free
