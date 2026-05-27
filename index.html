@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>跨网聊天 - Simple Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 600px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .screen {
+            display: none;
+            padding: 30px;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        .welcome-screen {
+            text-align: center;
+            padding: 40px 30px;
+        }
+
+        .welcome-screen h1 {
+            color: white;
+            font-size: 32px;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .welcome-screen p {
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 30px;
+        }
+
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 210, 255, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .join-screen {
+            text-align: center;
+        }
+
+        .join-screen h2 {
+            color: white;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        .room-input {
+            width: 100%;
+            padding: 15px 20px;
+            font-size: 18px;
+            text-align: center;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            margin-bottom: 20px;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+        }
+
+        .room-input:focus {
+            outline: none;
+            border-color: #00d2ff;
+        }
+
+        .room-input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .room-info {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .room-info h3 {
+            color: white;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .room-code {
+            font-size: 32px;
+            font-weight: bold;
+            color: #00d2ff;
+            letter-spacing: 4px;
+            margin-bottom: 15px;
+        }
+
+        .share-btn {
+            padding: 10px 20px;
+            background: rgba(0, 210, 255, 0.2);
+            color: #00d2ff;
+            border: 1px solid #00d2ff;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .share-btn:hover {
+            background: rgba(0, 210, 255, 0.3);
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.waiting {
+            background: #f39c12;
+        }
+
+        .status-dot.connected {
+            background: #27ae60;
+        }
+
+        .status-text {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .chat-screen {
+            display: flex;
+            flex-direction: column;
+            height: 500px;
+        }
+
+        .chat-header {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .chat-header h2 {
+            color: white;
+            font-size: 18px;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .connection-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .connection-dot.connected {
+            background: #27ae60;
+        }
+
+        .connection-dot.disconnected {
+            background: #e74c3c;
+        }
+
+        .connection-text {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 12px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            max-width: 70%;
+        }
+
+        .message.own {
+            align-self: flex-end;
+        }
+
+        .message.other {
+            align-self: flex-start;
+        }
+
+        .message .username {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .message.own .username {
+            text-align: right;
+        }
+
+        .message .content {
+            padding: 12px 18px;
+            border-radius: 18px;
+            word-wrap: break-word;
+        }
+
+        .message.own .content {
+            background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+
+        .message.other .content {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            border-bottom-left-radius: 5px;
+        }
+
+        .message .time {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 5px;
+        }
+
+        .message.own .time {
+            text-align: right;
+        }
+
+        .system-message {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 12px;
+            padding: 10px;
+            font-style: italic;
+        }
+
+        .chat-input {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 15px 20px;
+            font-size: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 25px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .chat-input input:focus {
+            outline: none;
+            border-color: #00d2ff;
+        }
+
+        .chat-input input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .send-btn {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .back-btn {
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .error-message {
+            background: rgba(231, 76, 60, 0.2);
+            color: #e74c3c;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .success-message {
+            background: rgba(39, 174, 96, 0.2);
+            color: #27ae60;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                border-radius: 0;
+                min-height: 100vh;
+            }
+
+            .screen {
+                padding: 20px;
+            }
+
+            .chat-screen {
+                height: calc(100vh - 40px);
+            }
+
+            .message {
+                max-width: 85%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="screen welcome-screen active" id="welcomeScreen">
+            <h1>🌐 跨网聊天</h1>
+            <p>支持不同网络环境下的实时聊天</p>
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="createRoom()">创建房间</button>
+                <button class="btn btn-secondary" onclick="showJoinScreen()">加入房间</button>
+            </div>
+        </div>
+
+        <div class="screen join-screen" id="joinScreen">
+            <button class="back-btn" onclick="showWelcomeScreen()">← 返回</button>
+            <h2>加入房间</h2>
+            <input type="text" class="room-input" id="roomCodeInput" placeholder="输入房间码" maxlength="8">
+            <button class="btn btn-primary" onclick="joinRoom()">加入</button>
+            <div id="joinError"></div>
+        </div>
+
+        <div class="screen join-screen" id="waitingScreen">
+            <div class="room-info">
+                <h3>你的房间码</h3>
+                <div class="room-code" id="roomCodeDisplay"></div>
+                <button class="share-btn" onclick="copyRoomCode()">📋 复制房间码</button>
+            </div>
+            <div class="status">
+                <div class="status-dot waiting"></div>
+                <span class="status-text" id="waitingText">等待对方加入...</span>
+            </div>
+            <button class="btn btn-secondary" onclick="cancelRoom()">取消</button>
+        </div>
+
+        <div class="screen chat-screen" id="chatScreen">
+            <div class="chat-header">
+                <h2>💬 聊天中</h2>
+                <div class="connection-status">
+                    <div class="connection-dot connected" id="connectionDot"></div>
+                    <span class="connection-text" id="connectionText">已连接</span>
+                </div>
+            </div>
+            <div class="chat-messages" id="chatMessages"></div>
+            <div class="chat-input">
+                <input type="text" id="messageInput" placeholder="输入消息...">
+                <button class="send-btn" id="sendBtn" onclick="sendMessage()">发送</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.1/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+        let currentRoomId = null;
+        let isMyMessage = false;
+
+        const welcomeScreen = document.getElementById('welcomeScreen');
+        const joinScreen = document.getElementById('joinScreen');
+        const waitingScreen = document.getElementById('waitingScreen');
+        const chatScreen = document.getElementById('chatScreen');
+        const roomCodeInput = document.getElementById('roomCodeInput');
+        const roomCodeDisplay = document.getElementById('roomCodeDisplay');
+        const waitingText = document.getElementById('waitingText');
+        const joinError = document.getElementById('joinError');
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+
+        function showWelcomeScreen() {
+            welcomeScreen.classList.add('active');
+            joinScreen.classList.remove('active');
+            waitingScreen.classList.remove('active');
+            chatScreen.classList.remove('active');
+            chatMessages.innerHTML = '';
+        }
+
+        function showJoinScreen() {
+            joinScreen.classList.add('active');
+            welcomeScreen.classList.remove('active');
+            joinError.innerHTML = '';
+        }
+
+        function createRoom() {
+            socket.emit('create-room');
+        }
+
+        function joinRoom() {
+            const roomId = roomCodeInput.value.trim().toLowerCase();
+            if (roomId.length !== 8) {
+                joinError.innerHTML = '<div class="error-message">请输入8位房间码</div>';
+                return;
+            }
+            joinError.innerHTML = '';
+            socket.emit('join-room', roomId);
+        }
+
+        function cancelRoom() {
+            currentRoomId = null;
+            showWelcomeScreen();
+        }
+
+        function copyRoomCode() {
+            navigator.clipboard.writeText(currentRoomId).then(() => {
+                alert('房间码已复制到剪贴板！');
+            });
+        }
+
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message || !currentRoomId) return;
+
+            socket.emit('send-message', {
+                roomId: currentRoomId,
+                message: message
+            });
+            messageInput.value = '';
+        }
+
+        function addMessage(username, message, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+
+            messageDiv.innerHTML = `
+                <div class="username">${username}</div>
+                <div class="content">${escapeHtml(message)}</div>
+                <div class="time">${time}</div>
+            `;
+
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function addSystemMessage(message) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'system-message';
+            messageDiv.textContent = message;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        socket.on('room-created', (data) => {
+            currentRoomId = data.roomId;
+            roomCodeDisplay.textContent = currentRoomId.toUpperCase();
+            waitingScreen.classList.add('active');
+            welcomeScreen.classList.remove('active');
+        });
+
+        socket.on('joined-room', (data) => {
+            currentRoomId = data.roomId;
+            chatScreen.classList.add('active');
+            joinScreen.classList.remove('active');
+            
+            if (data.messages && data.messages.length > 0) {
+                data.messages.forEach(msg => {
+                    const type = msg.senderId === socket.id ? 'own' : 'other';
+                    const username = type === 'own' ? '我' : '对方';
+                    addMessage(username, msg.content, type);
+                });
+            }
+            
+            addSystemMessage('🎉 已加入房间，开始聊天吧！');
+        });
+
+        socket.on('peer-joined', () => {
+            waitingScreen.classList.remove('active');
+            chatScreen.classList.add('active');
+            addSystemMessage('🎉 对方已加入，开始聊天吧！');
+        });
+
+        socket.on('peer-left', () => {
+            addSystemMessage('😢 对方已离开');
+        });
+
+        socket.on('receive-message', (data) => {
+            const type = data.senderId === socket.id ? 'own' : 'other';
+            const username = type === 'own' ? '我' : '对方';
+            addMessage(username, data.content, type);
+        });
+
+        socket.on('room-full', () => {
+            joinError.innerHTML = '<div class="error-message">房间已满！</div>';
+        });
+
+        socket.on('room-not-found', () => {
+            joinError.innerHTML = '<div class="error-message">房间不存在！</div>';
+        });
+
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+    </script>
+</body>
+</html>
